@@ -60,8 +60,9 @@ cask "senzingsdk-runtime-unofficial" do
   desc "Entity Resolution Engine SDK"
   homepage "https://senzing.com/"
 
+  # Livecheck always uses production - for internal staging tests use SENZING_VERSION explicitly
   livecheck do
-    url "#{ENV.fetch("SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com")}/"
+    url "https://senzing-production-osx.s3.amazonaws.com/"
     strategy :page_match do |page|
       page.scan(/senzingsdk[_-](\d+(?:\.\d+)+)\.dmg/i)
           .flatten
