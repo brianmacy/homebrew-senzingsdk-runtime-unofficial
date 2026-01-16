@@ -77,6 +77,11 @@ cask "senzingsdk-runtime-unofficial" do
 
   artifact "senzing", target: "#{HOMEBREW_PREFIX}/opt/senzing/runtime"
 
+  uninstall script: {
+    executable: "/bin/rm",
+    args:       ["-rf", "#{HOMEBREW_PREFIX}/opt/senzing/runtime"],
+  }
+
   zap trash: [
     "~/Library/Caches/Senzing",
     "~/Library/Logs/Senzing",
