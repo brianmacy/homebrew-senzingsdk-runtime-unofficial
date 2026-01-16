@@ -44,12 +44,19 @@ cask "senzingsdk-runtime-unofficial" do
   # Production S3 URL
   s3_base_url = ENV.fetch("SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com")
 
+  # Debug output
+  $stderr.puts "DEBUG: SENZING_S3_URL env = #{ENV['SENZING_S3_URL'].inspect}"
+  $stderr.puts "DEBUG: SENZING_VERSION env = #{ENV['SENZING_VERSION'].inspect}"
+  $stderr.puts "DEBUG: s3_base_url = #{s3_base_url}"
+
   # Dynamically fetch latest version from S3, or use SENZING_VERSION env var
   latest_version = ENV.fetch("SENZING_VERSION") do
     listing = `curl -s #{s3_base_url}`.strip
     versions = listing.scan(/senzingsdk_(\d+\.\d+\.\d+\.\d+)\.dmg/).flatten.uniq
     versions.max_by { |v| Gem::Version.new(v) }
   end
+
+  $stderr.puts "DEBUG: latest_version = #{latest_version}"
 
   version latest_version
   # No SHA256 - binaries are code-signed and downloaded directly from Senzing's S3
