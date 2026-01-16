@@ -61,7 +61,7 @@ cask "senzingsdk-runtime-unofficial" do
   homepage "https://senzing.com/"
 
   livecheck do
-    url "https://senzing-production-osx.s3.amazonaws.com/"
+    url "#{ENV.fetch("SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com")}/"
     strategy :page_match do |page|
       page.scan(/senzingsdk[_-](\d+(?:\.\d+)+)\.dmg/i)
           .flatten
