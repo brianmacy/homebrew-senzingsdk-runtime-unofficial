@@ -15,7 +15,7 @@ cask "senzingsdk-runtime-unofficial" do
   pstree = ancestor_cmds.join(" ")
   is_install = pstree.include?("install") && pstree.exclude?("uninstall") && pstree.exclude?("reinstall")
   eula_needed = is_install &&
-                ENV["SENZING_EULA_ACCEPTED"]&.downcase != "yes" &&
+                ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase != "yes" &&
                 !File.exist?(eula_accepted_file)
   if eula_needed
     $stderr.puts <<~MSG
@@ -41,13 +41,8 @@ cask "senzingsdk-runtime-unofficial" do
     end
   end
 
-  # S3 URL - use HOMEBREW_SENZING_S3_URL to override (Homebrew passes through HOMEBREW_* vars)
+  # S3 URL - use HOMEBREW_SENZING_S3_URL to override (Homebrew passes HOMEBREW_* env vars)
   s3_base_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com")
-
-  # Debug output
-  $stderr.puts "DEBUG: HOMEBREW_SENZING_S3_URL env = #{ENV['HOMEBREW_SENZING_S3_URL'].inspect}"
-  $stderr.puts "DEBUG: HOMEBREW_SENZING_VERSION env = #{ENV['HOMEBREW_SENZING_VERSION'].inspect}"
-  $stderr.puts "DEBUG: s3_base_url = #{s3_base_url}"
 
   # Dynamically fetch latest version from S3, or use HOMEBREW_SENZING_VERSION env var
   latest_version = ENV.fetch("HOMEBREW_SENZING_VERSION") do
@@ -55,8 +50,6 @@ cask "senzingsdk-runtime-unofficial" do
     versions = listing.scan(/senzingsdk_(\d+\.\d+\.\d+\.\d+)\.dmg/).flatten.uniq
     versions.max_by { |v| Gem::Version.new(v) }
   end
-
-  $stderr.puts "DEBUG: latest_version = #{latest_version}"
 
   version latest_version
   # No SHA256 - binaries are code-signed and downloaded directly from Senzing's S3
@@ -67,7 +60,7 @@ cask "senzingsdk-runtime-unofficial" do
   desc "Entity Resolution Engine SDK"
   homepage "https://senzing.com/"
 
-  # Livecheck always uses production - for internal staging tests use SENZING_VERSION explicitly
+  # Livecheck always uses production - for staging tests use HOMEBREW_SENZING_VERSION
   livecheck do
     url "https://senzing-production-osx.s3.amazonaws.com/"
     strategy :page_match do |page|
