@@ -42,7 +42,8 @@ cask "senzingsdk-runtime-unofficial" do
   end
 
   # S3 URL - use HOMEBREW_SENZING_S3_URL to override (Homebrew passes HOMEBREW_* env vars)
-  s3_base_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com")
+  # Strip trailing slash to avoid double-slash in URL
+  s3_base_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
 
   # Dynamically fetch latest version from S3, or use HOMEBREW_SENZING_VERSION env var
   latest_version = ENV.fetch("HOMEBREW_SENZING_VERSION") do

@@ -35,7 +35,7 @@ brew install --cask brianmacy/senzingsdk-runtime-unofficial/senzingsdk-runtime-u
 To skip the interactive EULA prompt:
 
 ```bash
-SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
+HOMEBREW_SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
 ```
 
 ### Install a Specific Version
@@ -43,7 +43,7 @@ SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
 By default, the latest version is installed. To install a specific version:
 
 ```bash
-SENZING_VERSION=4.1.0.25279 brew install --cask senzingsdk-runtime-unofficial
+HOMEBREW_SENZING_VERSION=4.1.0.25279 brew install --cask senzingsdk-runtime-unofficial
 ```
 
 ## Setup

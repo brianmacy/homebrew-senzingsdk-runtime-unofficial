@@ -36,14 +36,22 @@ curl -s https://senzing-production-osx.s3.amazonaws.com/ | grep -oE 'senzingsdk_
 
 Install specific version:
 ```bash
-SENZING_VERSION=4.1.0.25279 brew install --cask senzingsdk-runtime-unofficial
+HOMEBREW_SENZING_VERSION=4.1.0.25279 brew install --cask senzingsdk-runtime-unofficial
 ```
+
+## Environment Variables
+
+Homebrew only passes through env vars with `HOMEBREW_` prefix to cask evaluation:
+
+- `HOMEBREW_SENZING_EULA_ACCEPTED=yes` - Skip interactive EULA prompt
+- `HOMEBREW_SENZING_VERSION=x.x.x.xxxxx` - Install specific version
+- `HOMEBREW_SENZING_S3_URL=https://...` - Override S3 bucket (internal testing)
 
 ## EULA Acceptance
 
 The cask prompts for EULA acceptance interactively, or skip with environment variable:
 ```bash
-SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
+HOMEBREW_SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
 ```
 
 ## Dependencies
@@ -58,7 +66,7 @@ SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
 brew style Casks/senzingsdk-runtime-unofficial.rb
 
 # Test install (requires EULA acceptance)
-SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
+HOMEBREW_SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
 
 # Uninstall
 brew uninstall --cask senzingsdk-runtime-unofficial
@@ -69,5 +77,3 @@ brew uninstall --cask senzingsdk-runtime-unofficial
 The cask installs to `$(brew --prefix)/opt/senzing/runtime/` with structure:
 - `opt/senzing/runtime/data/` - data files
 - `opt/senzing/runtime/er/` - SDK (bin, lib, etc, sdk, resources)
-
-The postflight script adds rpath entries to dylibs in the lib directory.
