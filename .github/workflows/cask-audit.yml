@@ -1,0 +1,23 @@
+name: Cask Audit
+
+on:
+  pull_request:
+    paths:
+      - 'Casks/**'
+  push:
+    branches:
+      - main
+
+jobs:
+  audit:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Audit Casks
+        run: |
+          brew audit --cask --strict Casks/*.rb
+          brew style --fix Casks/*.rb
