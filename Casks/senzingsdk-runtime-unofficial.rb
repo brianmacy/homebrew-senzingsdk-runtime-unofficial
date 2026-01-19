@@ -1,46 +1,4 @@
 cask "senzingsdk-runtime-unofficial" do
-  # EULA acceptance check - only prompt during install, not uninstall/info/etc
-  eula_accepted_file = "/tmp/.senzing_eula_accepted_#{Process.ppid}"
-  # Walk up process tree to find brew command
-  ancestor_cmds = []
-  ancestor_pid = Process.pid
-  5.times do
-    cmd = `ps -o args= -p #{ancestor_pid} 2>/dev/null`.strip
-    break if cmd.empty?
-
-    ancestor_cmds << cmd
-    ancestor_pid = `ps -o ppid= -p #{ancestor_pid} 2>/dev/null`.strip.to_i
-    break if ancestor_pid <= 1
-  end
-  pstree = ancestor_cmds.join(" ")
-  is_install = pstree.include?("install") && pstree.exclude?("uninstall") && pstree.exclude?("reinstall")
-  eula_needed = is_install &&
-                ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase != "yes" &&
-                !File.exist?(eula_accepted_file)
-  if eula_needed
-    $stderr.puts <<~MSG
-      ========================================
-      SENZING END USER LICENSE AGREEMENT
-      ========================================
-      You must accept the Senzing EULA to install this software.
-
-      Review the EULA at:
-        https://senzing.com/end-user-license-agreement/
-
-      ========================================
-    MSG
-    $stderr.print "Do you accept the Senzing EULA? Type 'yes' to accept: "
-    response = $stdin.gets&.strip&.downcase
-    raise CaskError, "EULA not accepted. Installation aborted." if response != "yes"
-
-    File.write(eula_accepted_file, "accepted")
-    at_exit do
-      File.delete(eula_accepted_file)
-    rescue
-      nil
-    end
-  end
-
   # S3 URL - use HOMEBREW_SENZING_S3_URL to override (Homebrew passes HOMEBREW_* env vars)
   # Strip trailing slash to avoid double-slash in URL
   s3_base_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
@@ -77,12 +35,30 @@ cask "senzingsdk-runtime-unofficial" do
   depends_on formula: "openssl@3"
   depends_on formula: "sqlite"
 
+  # EULA check in preflight - only runs once during actual install (like Formula's def install)
+  preflight do
+    unless ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase == "yes"
+      $stderr.puts <<~MSG
+        ========================================
+        SENZING END USER LICENSE AGREEMENT
+        ========================================
+        You must accept the Senzing EULA to install this software.
+
+        Review the EULA at:
+          https://senzing.com/end-user-license-agreement/
+
+        ========================================
+      MSG
+      $stderr.print "Do you accept the Senzing EULA? Type 'yes' to accept: "
+      response = $stdin.gets&.strip&.downcase
+      raise CaskError, "EULA not accepted. Installation aborted." if response != "yes"
+    end
+  end
+
   artifact "senzing", target: "#{HOMEBREW_PREFIX}/opt/senzing/runtime"
 
-  uninstall script: {
-    executable: "/bin/rm",
-    args:       ["-rf", "#{HOMEBREW_PREFIX}/opt/senzing/runtime"],
-  }
+  # Note: No explicit uninstall script needed - Homebrew's artifact handling
+  # automatically removes the installed directory during uninstall/upgrade
 
   zap trash: [
     "~/Library/Caches/Senzing",
