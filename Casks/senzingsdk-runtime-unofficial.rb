@@ -35,9 +35,12 @@ cask "senzingsdk-runtime-unofficial" do
   depends_on formula: "openssl@3"
   depends_on formula: "sqlite"
 
-  # EULA check in preflight - only runs once during actual install (like Formula's def install)
+  # EULA check in preflight - only prompt on fresh install, not upgrades or no-ops
   preflight do
-    unless ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase == "yes"
+    already_installed = Dir.exist?("#{HOMEBREW_PREFIX}/opt/senzing/runtime")
+    eula_accepted = ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase == "yes"
+
+    unless already_installed || eula_accepted
       $stderr.puts <<~MSG
         ========================================
         SENZING END USER LICENSE AGREEMENT
