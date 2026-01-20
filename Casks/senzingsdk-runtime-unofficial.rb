@@ -101,8 +101,13 @@ cask "senzingsdk-runtime-unofficial" do
 
   artifact "senzing", target: "#{HOMEBREW_PREFIX}/opt/senzing/runtime"
 
-  # Note: No explicit uninstall script needed - Homebrew's artifact handling
-  # automatically removes the installed directory during uninstall/upgrade
+  # Clean up marker files during uninstall to allow version detection on reinstall
+  uninstall_preflight do
+    homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
+    marker_dir = "#{homebrew_prefix}/opt/senzing"
+    FileUtils.rm_f("#{marker_dir}/.s3_source")
+    FileUtils.rm_f("#{marker_dir}/.installed_version")
+  end
 
   zap trash: [
     "~/Library/Caches/Senzing",
