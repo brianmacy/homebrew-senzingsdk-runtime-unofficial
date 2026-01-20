@@ -38,8 +38,8 @@ cask "senzingsdk-runtime-unofficial" do
   # EULA check in preflight - only prompt on fresh install, not upgrades or no-ops
   preflight do
     # Check Caskroom to see if any version is already installed
-    # HOMEBREW_PREFIX constant isn't available in preflight, so use brew --prefix
-    homebrew_prefix = `brew --prefix`.strip
+    # Use ENV["HOMEBREW_PREFIX"] or fallback to standard locations
+    homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
     caskroom_path = "#{homebrew_prefix}/Caskroom/senzingsdk-runtime-unofficial"
     already_installed = Dir.exist?(caskroom_path) && Dir.children(caskroom_path).any? { |f| f != ".metadata" }
     eula_accepted = ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase == "yes"
