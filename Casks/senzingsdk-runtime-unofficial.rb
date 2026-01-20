@@ -3,21 +3,13 @@ cask "senzingsdk-runtime-unofficial" do
   # Strip trailing slash to avoid double-slash in URL
   s3_base_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
 
-  # Version determination: explicit version, or read from marker file, or query S3
-  homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
-  version_marker_file = "#{homebrew_prefix}/opt/senzing/.installed_version"
-
+  # Version determination: explicit version or query S3 for latest
+  # Note: brew install with a newer version available will show "already installed"
+  # Users must use 'brew reinstall' to upgrade to newer versions
   latest_version = ENV.fetch("HOMEBREW_SENZING_VERSION") do
-    # If already installed, return the installed version to prevent upgrade conflicts
-    # Users must use 'brew reinstall' to upgrade to a newer version
-    if File.exist?(version_marker_file)
-      File.read(version_marker_file).strip
-    else
-      # Fresh install - query S3 for latest
-      listing = `curl -s #{s3_base_url}`.strip
-      versions = listing.scan(/senzingsdk_(\d+\.\d+\.\d+\.\d+)\.dmg/).flatten.uniq
-      versions.max_by { |v| Gem::Version.new(v) }
-    end
+    listing = `curl -s #{s3_base_url}`.strip
+    versions = listing.scan(/senzingsdk_(\d+\.\d+\.\d+\.\d+)\.dmg/).flatten.uniq
+    versions.max_by { |v| Gem::Version.new(v) }
   end
 
   version latest_version
@@ -45,13 +37,12 @@ cask "senzingsdk-runtime-unofficial" do
   depends_on formula: "openssl@3"
   depends_on formula: "sqlite"
 
-  # EULA check and upgrade handling in preflight
+  # EULA check in preflight
   preflight do
     # Use ENV["HOMEBREW_PREFIX"] or fallback to standard locations
     homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
     caskroom_path = "#{homebrew_prefix}/Caskroom/senzingsdk-runtime-unofficial"
     s3_marker_file = "#{homebrew_prefix}/opt/senzing/.s3_source"
-    version_marker_file = "#{homebrew_prefix}/opt/senzing/.installed_version"
 
     already_installed = Dir.exist?(caskroom_path) && Dir.children(caskroom_path).any? { |f| f != ".metadata" }
 
@@ -85,29 +76,19 @@ cask "senzingsdk-runtime-unofficial" do
     end
   end
 
-  # Track S3 source and installed version in postflight for future installs
+  # Track S3 source in postflight for EULA checking on source changes
   postflight do
     homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
     marker_dir = "#{homebrew_prefix}/opt/senzing"
     s3_marker_file = "#{marker_dir}/.s3_source"
-    version_marker_file = "#{marker_dir}/.installed_version"
 
     s3_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
 
     FileUtils.mkdir_p(marker_dir)
     File.write(s3_marker_file, s3_url)
-    File.write(version_marker_file, version)
   end
 
   artifact "senzing", target: "#{HOMEBREW_PREFIX}/opt/senzing/runtime"
-
-  # Clean up marker files during uninstall to allow version detection on reinstall
-  uninstall_preflight do
-    homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
-    marker_dir = "#{homebrew_prefix}/opt/senzing"
-    FileUtils.rm_f("#{marker_dir}/.s3_source")
-    FileUtils.rm_f("#{marker_dir}/.installed_version")
-  end
 
   zap trash: [
     "~/Library/Caches/Senzing",
