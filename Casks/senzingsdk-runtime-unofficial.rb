@@ -53,14 +53,19 @@ cask "senzingsdk-runtime-unofficial" do
       s3_url_changed = previous_s3_url != current_s3_url
     end
 
-    # Check for version changes - if version differs, clean old Caskroom to prevent upgrade conflicts
+    # Check for version changes - if version differs, require reinstall to avoid Homebrew upgrade conflicts
     if already_installed && File.exist?(version_marker_file)
       installed_version = File.read(version_marker_file).strip
       if installed_version != version.to_s
-        # Version changed - remove old Caskroom metadata to allow clean upgrade
-        Dir.glob("#{caskroom_path}/*").each do |path|
-          FileUtils.rm_rf(path) if File.basename(path) != ".metadata" && File.basename(path) != installed_version
-        end
+        raise CaskError, <<~MSG
+          Version mismatch detected:
+            Installed: #{installed_version}
+            Available: #{version}
+
+          To upgrade, use: brew reinstall --cask senzingsdk-runtime-unofficial
+
+          (Dynamic version detection is incompatible with brew upgrade - use reinstall instead)
+        MSG
       end
     end
 
