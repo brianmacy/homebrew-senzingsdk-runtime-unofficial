@@ -35,16 +35,40 @@ cask "senzingsdk-runtime-unofficial" do
   depends_on formula: "openssl@3"
   depends_on formula: "sqlite"
 
-  # EULA check in preflight - only prompt on fresh install, not upgrades or no-ops
+  # EULA check and upgrade handling in preflight
   preflight do
-    # Check Caskroom to see if any version is already installed
     # Use ENV["HOMEBREW_PREFIX"] or fallback to standard locations
     homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
     caskroom_path = "#{homebrew_prefix}/Caskroom/senzingsdk-runtime-unofficial"
-    already_installed = Dir.exist?(caskroom_path) && Dir.children(caskroom_path).any? { |f| f != ".metadata" }
-    eula_accepted = ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase == "yes"
+    s3_marker_file = "#{homebrew_prefix}/opt/senzing/.s3_source"
+    version_marker_file = "#{homebrew_prefix}/opt/senzing/.installed_version"
 
-    unless already_installed || eula_accepted
+    already_installed = Dir.exist?(caskroom_path) && Dir.children(caskroom_path).any? { |f| f != ".metadata" }
+
+    # Check if S3 URL has changed - if so, this is effectively a fresh install from new source
+    s3_url_changed = false
+    if File.exist?(s3_marker_file)
+      previous_s3_url = File.read(s3_marker_file).strip
+      current_s3_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
+      s3_url_changed = previous_s3_url != current_s3_url
+    end
+
+    # Check for version changes - if version differs, clean old Caskroom to prevent upgrade conflicts
+    if already_installed && File.exist?(version_marker_file)
+      installed_version = File.read(version_marker_file).strip
+      if installed_version != version.to_s
+        # Version changed - remove old Caskroom metadata to allow clean upgrade
+        Dir.glob("#{caskroom_path}/*").each do |path|
+          FileUtils.rm_rf(path) if File.basename(path) != ".metadata" && File.basename(path) != installed_version
+        end
+      end
+    end
+
+    # Prompt for EULA if: not already installed OR S3 URL changed (new source = new EULA acceptance needed)
+    eula_accepted = ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase == "yes"
+    eula_needed = (!already_installed || s3_url_changed) && !eula_accepted
+
+    if eula_needed
       $stderr.puts <<~MSG
         ========================================
         SENZING END USER LICENSE AGREEMENT
@@ -60,6 +84,20 @@ cask "senzingsdk-runtime-unofficial" do
       response = $stdin.gets&.strip&.downcase
       raise CaskError, "EULA not accepted. Installation aborted." if response != "yes"
     end
+  end
+
+  # Track S3 source and installed version in postflight for future installs
+  postflight do
+    homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
+    marker_dir = "#{homebrew_prefix}/opt/senzing"
+    s3_marker_file = "#{marker_dir}/.s3_source"
+    version_marker_file = "#{marker_dir}/.installed_version"
+
+    s3_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
+
+    FileUtils.mkdir_p(marker_dir)
+    File.write(s3_marker_file, s3_url)
+    File.write(version_marker_file, version)
   end
 
   artifact "senzing", target: "#{HOMEBREW_PREFIX}/opt/senzing/runtime"
