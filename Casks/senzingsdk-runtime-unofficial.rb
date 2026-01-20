@@ -3,11 +3,21 @@ cask "senzingsdk-runtime-unofficial" do
   # Strip trailing slash to avoid double-slash in URL
   s3_base_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
 
-  # Dynamically fetch latest version from S3, or use HOMEBREW_SENZING_VERSION env var
+  # Version determination: explicit version, or read from marker file, or query S3
+  homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
+  version_marker_file = "#{homebrew_prefix}/opt/senzing/.installed_version"
+
   latest_version = ENV.fetch("HOMEBREW_SENZING_VERSION") do
-    listing = `curl -s #{s3_base_url}`.strip
-    versions = listing.scan(/senzingsdk_(\d+\.\d+\.\d+\.\d+)\.dmg/).flatten.uniq
-    versions.max_by { |v| Gem::Version.new(v) }
+    # If already installed, return the installed version to prevent upgrade conflicts
+    # Users must use 'brew reinstall' to upgrade to a newer version
+    if File.exist?(version_marker_file)
+      File.read(version_marker_file).strip
+    else
+      # Fresh install - query S3 for latest
+      listing = `curl -s #{s3_base_url}`.strip
+      versions = listing.scan(/senzingsdk_(\d+\.\d+\.\d+\.\d+)\.dmg/).flatten.uniq
+      versions.max_by { |v| Gem::Version.new(v) }
+    end
   end
 
   version latest_version
@@ -51,22 +61,6 @@ cask "senzingsdk-runtime-unofficial" do
       previous_s3_url = File.read(s3_marker_file).strip
       current_s3_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
       s3_url_changed = previous_s3_url != current_s3_url
-    end
-
-    # Check for version changes - if version differs, require reinstall to avoid Homebrew upgrade conflicts
-    if already_installed && File.exist?(version_marker_file)
-      installed_version = File.read(version_marker_file).strip
-      if installed_version != version.to_s
-        raise CaskError, <<~MSG
-          Version mismatch detected:
-            Installed: #{installed_version}
-            Available: #{version}
-
-          To upgrade, use: brew reinstall --cask senzingsdk-runtime-unofficial
-
-          (Dynamic version detection is incompatible with brew upgrade - use reinstall instead)
-        MSG
-      end
     end
 
     # Prompt for EULA if: not already installed OR S3 URL changed (new source = new EULA acceptance needed)
