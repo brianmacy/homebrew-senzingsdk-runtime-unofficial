@@ -16,7 +16,8 @@ cask "senzingsdk-runtime-unofficial" do
   # No SHA256 - binaries are code-signed and downloaded directly from Senzing's S3
   sha256 :no_check
 
-  url "#{s3_base_url}/senzingsdk_#{version}.dmg"
+  url "#{s3_base_url}/senzingsdk_#{version}.dmg",
+      verified: "senzing-production-osx.s3.amazonaws.com"
   name "Senzing SDK Runtime (Unofficial)"
   desc "Entity Resolution Engine SDK"
   homepage "https://senzing.com/"
