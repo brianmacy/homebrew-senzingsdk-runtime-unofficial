@@ -1,115 +1,56 @@
 cask "senzingsdk-runtime-unofficial" do
-  # S3 URL - use HOMEBREW_SENZING_S3_URL to override (Homebrew passes HOMEBREW_* env vars)
-  # Strip trailing slash to avoid double-slash in URL
-  s3_base_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
-
-  # Version determination: explicit version or query S3 for latest
-  # Note: brew install with a newer version available will show "already installed"
-  # Users must use 'brew reinstall' to upgrade to newer versions
-  latest_version = ENV.fetch("HOMEBREW_SENZING_VERSION") do
-    listing = `curl -s #{s3_base_url}`.strip
-    versions = listing.scan(/senzingsdk_(\d+\.\d+\.\d+\.\d+)\.dmg/).flatten.uniq
-    versions.max_by { |v| Gem::Version.new(v) }
-  end
-
-  version latest_version
-  # No SHA256 - binaries are code-signed and downloaded directly from Senzing's S3
+  version "4.0.0"
   sha256 :no_check
 
-  url "#{s3_base_url}/senzingsdk_#{version}.dmg",
-      verified: "senzing-production-osx.s3.amazonaws.com"
-  name "Senzing SDK Runtime (Unofficial)"
-  desc "Entity Resolution Engine SDK"
-  homepage "https://senzing.com/"
+  url "https://senzing.com"
+  name "Senzing SDK Runtime (Unofficial) - DEPRECATED"
+  desc "DEPRECATED - Use official tap: senzing/senzingsdk"
+  homepage "https://github.com/Senzing/homebrew-senzingsdk"
 
-  # Livecheck always uses production - for staging tests use HOMEBREW_SENZING_VERSION
-  livecheck do
-    url "https://senzing-production-osx.s3.amazonaws.com/"
-    strategy :page_match do |page|
-      page.scan(/senzingsdk[_-](\d+(?:\.\d+)+)\.dmg/i)
-          .flatten
-          .uniq
-          .max_by { |v| Gem::Version.new(v.tr("_", ".")) }
-    end
-  end
-
-  depends_on macos: ">= :ventura"
-  depends_on arch: :arm64
-  depends_on formula: "openssl@3"
-  depends_on formula: "sqlite"
-
-  # EULA check in preflight
   preflight do
-    # Use ENV["HOMEBREW_PREFIX"] or fallback to standard locations
-    homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
-    caskroom_path = "#{homebrew_prefix}/Caskroom/senzingsdk-runtime-unofficial"
-    s3_marker_file = "#{homebrew_prefix}/opt/senzing/.s3_source"
+    raise CaskError, <<~MSG
 
-    already_installed = Dir.exist?(caskroom_path) && Dir.children(caskroom_path).any? { |f| f != ".metadata" }
+      ════════════════════════════════════════════════════════════
+      THIS CASK HAS BEEN DEPRECATED
+      ════════════════════════════════════════════════════════════
 
-    # Check if S3 URL has changed - if so, this is effectively a fresh install from new source
-    s3_url_changed = false
-    if File.exist?(s3_marker_file)
-      previous_s3_url = File.read(s3_marker_file).strip
-      current_s3_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
-      s3_url_changed = previous_s3_url != current_s3_url
-    end
+      The unofficial Senzing SDK tap is no longer maintained.
+      An official Senzing Homebrew tap is now available.
 
-    # Prompt for EULA if: not already installed OR S3 URL changed (new source = new EULA acceptance needed)
-    eula_accepted = ENV["HOMEBREW_SENZING_EULA_ACCEPTED"]&.downcase == "yes"
-    eula_needed = (!already_installed || s3_url_changed) && !eula_accepted
+      To migrate:
 
-    if eula_needed
-      $stderr.puts <<~MSG
-        ========================================
-        SENZING END USER LICENSE AGREEMENT
-        ========================================
-        You must accept the Senzing EULA to install this software.
+        1. Uninstall this cask:
+             brew uninstall --cask senzingsdk-runtime-unofficial
 
-        Review the EULA at:
-          https://senzing.com/end-user-license-agreement/
+        2. Remove this tap:
+             brew untap brianmacy/senzingsdk-runtime-unofficial
 
-        ========================================
-      MSG
-      $stderr.print "Do you accept the Senzing EULA? Type 'yes' to accept: "
-      response = $stdin.gets&.strip&.downcase
-      raise CaskError, "EULA not accepted. Installation aborted." if response != "yes"
-    end
+        3. Install the official cask:
+             brew install --cask senzing/senzingsdk/senzingsdk
+
+      NOTE: The official cask has different environment variables:
+        - EULA acceptance: HOMEBREW_SENZING_ACCEPT_EULA=i_accept_the_senzing_eula
+        - Version override: HOMEBREW_SENZING_SDK_VERSION=x.x.x.xxxxx
+        - Install path:    $(brew --prefix)/opt/senzing/er  (no "runtime/" prefix)
+
+      Update your shell config (~/.zshrc or ~/.bash_profile):
+        export SENZING_ROOT="$(brew --prefix)/opt/senzing/er"
+        export DYLD_LIBRARY_PATH="${SENZING_ROOT}/lib:$DYLD_LIBRARY_PATH"
+        export PATH="${SENZING_ROOT}/bin:$PATH"
+
+      Official repo: https://github.com/Senzing/homebrew-senzingsdk
+
+      ════════════════════════════════════════════════════════════
+    MSG
   end
-
-  # Track S3 source in postflight for EULA checking on source changes
-  postflight do
-    homebrew_prefix = ENV.fetch("HOMEBREW_PREFIX", "/opt/homebrew")
-    marker_dir = "#{homebrew_prefix}/opt/senzing"
-    s3_marker_file = "#{marker_dir}/.s3_source"
-
-    s3_url = ENV.fetch("HOMEBREW_SENZING_S3_URL", "https://senzing-production-osx.s3.amazonaws.com").chomp("/")
-
-    FileUtils.mkdir_p(marker_dir)
-    File.write(s3_marker_file, s3_url)
-  end
-
-  artifact "senzing", target: "#{HOMEBREW_PREFIX}/opt/senzing/runtime"
-
-  zap trash: [
-    "~/Library/Caches/Senzing",
-    "~/Library/Logs/Senzing",
-    "~/Library/Preferences/com.senzing.*",
-  ]
 
   caveats <<~EOS
-    The Senzing SDK Runtime has been installed to:
-      #{HOMEBREW_PREFIX}/opt/senzing/runtime
+    ════════════════════════════════════════════════════════════
+    DEPRECATED — Use the official Senzing Homebrew tap instead:
 
-    Add these to your shell configuration (~/.zshrc or ~/.bash_profile):
+      brew install --cask senzing/senzingsdk/senzingsdk
 
-      export SENZING_ROOT="#{HOMEBREW_PREFIX}/opt/senzing/runtime/er"
-      export DYLD_LIBRARY_PATH="${SENZING_ROOT}/lib:$DYLD_LIBRARY_PATH"
-      export PATH="${SENZING_ROOT}/bin:$PATH"
-
-    Or source the provided setup script:
-      source "#{HOMEBREW_PREFIX}/opt/senzing/runtime/er/setupEnv"
-
-    NOTE: This is an unofficial community package.
+    See: https://github.com/Senzing/homebrew-senzingsdk
+    ════════════════════════════════════════════════════════════
   EOS
 end
