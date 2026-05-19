@@ -1,57 +1,36 @@
-# Homebrew Tap for Senzing SDK Runtime (Unofficial)
+# DEPRECATED — Use the Official Senzing Homebrew Tap
 
-Unofficial Homebrew tap for the Senzing Entity Resolution Engine SDK on macOS.
+> **This tap is no longer maintained.** Senzing now provides an official Homebrew tap at [Senzing/homebrew-senzingsdk](https://github.com/Senzing/homebrew-senzingsdk).
 
-> **Note**: This is a community-maintained package, not officially supported by Senzing.
+## Migration
 
-## Requirements
-
-- macOS 13 (Ventura) or later
-- Apple Silicon (ARM64)
-- Dependencies (installed automatically): `openssl@3`, `sqlite`
-
-## Installation
-
-### Add the Tap
+### 1. Uninstall the unofficial cask
 
 ```bash
-brew tap brianmacy/senzingsdk-runtime-unofficial
+brew uninstall --cask senzingsdk-runtime-unofficial
+brew untap brianmacy/senzingsdk-runtime-unofficial
 ```
 
-### Install the SDK
-
-You must accept the [Senzing EULA](https://senzing.com/end-user-license-agreement/) to install:
+### 2. Install the official cask
 
 ```bash
-brew install --cask senzingsdk-runtime-unofficial
+brew install --cask senzing/senzingsdk/senzingsdk
 ```
 
-Or as a one-liner (without tapping first):
+To accept the EULA non-interactively:
 
 ```bash
-brew install --cask brianmacy/senzingsdk-runtime-unofficial/senzingsdk-runtime-unofficial
+HOMEBREW_SENZING_ACCEPT_EULA=i_accept_the_senzing_eula brew install --cask senzing/senzingsdk/senzingsdk
 ```
 
-To skip the interactive EULA prompt:
+### 3. Update your shell configuration
+
+The official cask installs to a **different path** — there is no longer a `runtime/` subdirectory.
+
+Update `~/.zshrc` or `~/.bash_profile`:
 
 ```bash
-HOMEBREW_SENZING_EULA_ACCEPTED=yes brew install --cask senzingsdk-runtime-unofficial
-```
-
-### Install a Specific Version
-
-By default, the latest version is installed. To install a specific version:
-
-```bash
-HOMEBREW_SENZING_VERSION=4.1.0.25279 brew install --cask senzingsdk-runtime-unofficial
-```
-
-## Setup
-
-After installation, add to your `~/.zshrc` or `~/.bash_profile`:
-
-```bash
-export SENZING_ROOT="$(brew --prefix)/opt/senzing/runtime/er"
+export SENZING_ROOT="$(brew --prefix)/opt/senzing/er"
 export DYLD_LIBRARY_PATH="${SENZING_ROOT}/lib:$DYLD_LIBRARY_PATH"
 export PATH="${SENZING_ROOT}/bin:$PATH"
 ```
@@ -59,26 +38,26 @@ export PATH="${SENZING_ROOT}/bin:$PATH"
 Or source the setup script:
 
 ```bash
-source "$(brew --prefix)/opt/senzing/runtime/er/setupEnv"
+source "$(brew --prefix)/opt/senzing/er/setupEnv"
 ```
 
-## Uninstall
+### Key differences from the unofficial cask
 
-```bash
-brew uninstall --cask senzingsdk-runtime-unofficial
-```
-
-To remove all Senzing data:
-
-```bash
-brew uninstall --zap --cask senzingsdk-runtime-unofficial
-```
-
-## License
-
-By installing this SDK, you accept the [Senzing End User License Agreement](https://senzing.com/end-user-license-agreement/).
+| | Unofficial (this repo) | Official |
+|---|---|---|
+| Tap | `brianmacy/senzingsdk-runtime-unofficial` | `senzing/senzingsdk` |
+| Cask name | `senzingsdk-runtime-unofficial` | `senzingsdk` |
+| Install path | `$(brew --prefix)/opt/senzing/runtime/er` | `$(brew --prefix)/opt/senzing/er` |
+| EULA env var | `HOMEBREW_SENZING_EULA_ACCEPTED=yes` | `HOMEBREW_SENZING_ACCEPT_EULA=i_accept_the_senzing_eula` |
+| Version env var | `HOMEBREW_SENZING_VERSION` | `HOMEBREW_SENZING_SDK_VERSION` |
 
 ## Links
 
+- [Official Senzing Homebrew Tap](https://github.com/Senzing/homebrew-senzingsdk)
 - [Senzing Homepage](https://senzing.com)
 - [Senzing Documentation](https://docs.senzing.com)
+- [Senzing EULA](https://senzing.com/end-user-license-agreement/)
+
+## License
+
+MIT — see [LICENSE](LICENSE).
